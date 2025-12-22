@@ -3,8 +3,8 @@ defmodule Internal.Dist.Binomial do
   defstruct [:n, :p]
 
   @spec pdf(non_neg_integer(), number(), non_neg_integer()) :: number()
-  def pdf(n, p, x) do
-    nil
+  def pdf(n, p, k) do
+    Math.choose(n, k) * Math.exponentiate_int(p, k) * Math.exponentiate_int(p, n - k)
   end
 
   def cdf(n, p, x) do
