@@ -1,6 +1,8 @@
 defmodule Math do
   require Integer
 
+  alias Internal.Math.ContFrac
+
   @spec sqrt(number) :: number()
   defdelegate sqrt(n), to: :math
 
@@ -28,8 +30,6 @@ defmodule Math do
   @doc """
   Uses the Lanczos approximation to compute the log gamma of
   the input.
-
-  https://numerical.recipes/book.html
   """
   @spec loggamma(number()) :: number()
   def loggamma(xx) do
@@ -89,63 +89,111 @@ defmodule Math do
     end
   end
 
-  def inv_inc_beta(a, b, x) do
+  def inc_beta(a, b, x) do
     case x > (a + 1.0) / (a + b + 2.0) do
       true ->
-        1.0 - inv_inc_beta_wrapper(b, a, 1.0 - x)
+        1.0 - beta_continued_fraction_solver(b, a, 1.0 - x)
 
       false ->
-        inv_inc_beta_wrapper(a, b, x)
+        beta_continued_fraction_solver(a, b, x)
     end
   end
 
-  defp inv_inc_beta_wrapper(a, b, x) do
+  defp beta_continued_fraction_solver(a, b, x) do
     lbeta_ab = loggamma(a) + loggamma(b) - loggamma(a + b)
     mult = exp(log(x) * a + log(1.0 - x) * b - lbeta_ab) / a
-    contfrac = lentz_loop(1.0, 0.0, 1.0, 0, a, b, x)
+    contfrac = ContFrac.lentz_loop(1.0, 0.0, 1.0, 0, a, b, x)
     mult * (contfrac - 1.0)
   end
 
-  defp clip(value) do
-    tinyfloat = 1.0e-30
+  def inv_inc_beta(a, b, p) do
+    cond do
+      p <= 0.0 ->
+        0.0
 
-    case abs(value) < tinyfloat do
-      true -> tinyfloat
-      false -> value
+      p >= 1.0 ->
+        1.0
+
+      true ->
+        guess =
+          case a > 1.0 and b > 1.0 do
+            true ->
+              mu = a / (a + b)
+              sigma = sqrt(a * b / ((a + b) ** 2.0 * (a + b + 1.0)))
+              x = mu + sigma * (2.0 * p - 1.0)
+              # Clamp x to 0.01 and 0.99
+              max(0.01, min(0.99, x))
+
+            false ->
+              0.5
+          end
+
+        betaab = loggamma(a + b) - loggamma(a) - loggamma(b)
+
+        newton_halley_iterate(guess, 0.0, 1.0, 0, p, a, b, betaab)
     end
   end
 
-  defp d_n(n, _, _, _) when n == 0 do
-    1
-  end
-
-  defp d_n(n, a, b, x) when Integer.is_even(n) do
-    m = div(n, 2)
-    m * (b - m) * x / ((a + 2.0 * m - 1.0) * (a + 2.0 * m))
-  end
-
-  defp d_n(n, a, b, x) do
-    m = div(n, 2)
-    -((a + m) * (a + b + m) * x) / ((a + 2.0 * m) * (a + 2.0 * m + 1.0))
-  end
-
-  defp lentz_loop(c, d, f, n, a, b, x) do
-    unless n <= 250 do
-      raise ArgumentError,
-        message: "the loop has received an invalid number of iterations #{inspect(n)}"
-    end
-
+  def newton_halley_iterate(x, x_low, x_high, n, p, a, b, betaab) do
     epsilon = 1.0e-8
-    numerator = d_n(n, a, b, x)
-    d_denom = clip(1.0 + numerator * d)
-    dprime = 1.0 / d_denom
-    cprime = clip(1.0 + numerator / c)
-    cd = cprime * dprime
-    fprime = f * cd
+    riskofunderflow = 1.0e-20
 
-    case abs(1.0 - cd) < epsilon do
-      true -> fprime
-      false -> lentz_loop(cprime, dprime, fprime, n + 1, a, b, x)
+    unless n < 15 do
+      raise ArgumentError, message: "original guess was bad, more than 100 iteratiosn!"
+    end
+
+    fx = inc_beta(a, b, x) - p
+
+    {new_low, new_high} =
+      case fx < 0 do
+        true -> {max(0.0, x), min(x_high, 1.0)}
+        false -> {max(0.0, x_low), min(x, 1.0)}
+      end
+
+    x_bisected =
+      cond do
+        x < 0 -> x
+        x < 1 -> (new_low + new_high) / 2
+        true -> 1
+      end
+
+    logpdf = (a - 1.0) * log(x) + (b - 1.0) * log(1.0 - x) + betaab
+    fprimex = exp(logpdf)
+
+    fprimeprimex = fprimex * ((a - 1) / x - (b - 1) / (1 - x))
+    denominator = fprimex - 0.5 * fx * fprimeprimex / fprimex
+
+    x_halley =
+      case denominator < riskofunderflow do
+        ## Just fallback to newton,
+        true -> x - fx / fprimex
+        ## Otherwise use Halley, up to third derivative.
+        false -> x - fx / denominator
+      end
+
+    cond do
+      # the pdf is the derivative of the CDF. if the pdf is close to zero
+      # then indeed we have achieved convergence according to Newton-Raphson
+      # or Halley, or any of the iterative methods which use the first derivative.
+      abs(fx) < epsilon ->
+        x
+
+      abs(x_halley - x) < epsilon ->
+        x_halley
+
+      # bisect the search space if we're too far away. This is not
+      # Newton-Raphson or Halley, it's just a shortcut.
+      x <= 0 or x >= 1 ->
+        newton_halley_iterate(x_bisected, new_low, new_high, n + 1, p, a, b, betaab)
+
+      fprimex < riskofunderflow ->
+        newton_halley_iterate(x_bisected, new_low, new_high, n + 1, p, a, b, betaab)
+
+      x_halley < new_low or x_halley > new_high ->
+        newton_halley_iterate(x_bisected, new_low, new_high, n + 1, p, a, b, betaab)
+
+      true ->
+        newton_halley_iterate(x_halley, new_low, new_high, n + 1, p, a, b, betaab)
     end
   end
 end
