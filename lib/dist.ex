@@ -37,7 +37,64 @@ defmodule Dist do
     0.01
   """
 
-  alias Internal.Dist.{ContinuousUniform, Exponential}
+  alias Internal.Dist.{
+    Binomial,
+    ContinuousUniform,
+    Exponential
+  }
+
+  @doc """
+  Create a `struct` representing an binomial random variable parametrized by `a`, `b`.
+
+  By convention, `n` is the number of trials, and `p` the probability of success for
+  each trial.
+
+  `p` must be a valid probability, between 0 and 1.
+
+  `n` must be an nonnegative integer value.
+
+  ## Example
+    iex> exp = Dist.binomial(150, 0.5) # 150 fair coin flips, for example.
+  """
+  @spec binomial(non_neg_integer(), number()) :: struct()
+  def binomial(n, p) do
+    cond do
+      trunc(n) != n ->
+        raise ArgumentError,
+          message: "you provided n = #{inspect(n)} which does not represent an integral value!"
+
+      p < 0 or p > 1 ->
+        raise ArgumentError,
+          message: "you provided p = #{inspect(p)} which does not represent a valid probability!"
+
+      true ->
+        %Binomial{n: n, p: p}
+    end
+  end
+
+  @doc """
+  Create a `struct` representing an continuous random variable parametrized by `a`, `b`.
+
+  By convention, `a` is the lower limit, and `b` is the upper limit.
+
+  `a` must be less than `b`
+
+  ## Example
+
+  Create continuous uniform distribution with over the interval (0, 100).
+
+    iex> exp = Dist.continuous_uniform(0, 100)
+  """
+  @spec continuous_uniform(number(), number()) :: struct()
+  def continuous_uniform(a, b) do
+    unless a < b do
+      raise ArgumentError,
+        message:
+          "minimum value #{inspect(a)} must be smaller than the maximum value: #{inspect(b)}"
+    end
+
+    %ContinuousUniform{a: a, b: b}
+  end
 
   @doc """
   Create a `struct` representing an exponential variable parametrized by lambda.
@@ -64,30 +121,6 @@ defmodule Dist do
   end
 
   @doc """
-  Create a `struct` representing an exponential variable parametrized by `a`, `b`.
-
-  By convention, `a` is the lower limit, and `b` is the upper limit.
-
-  `a` must be less than `b`
-
-  ## Example
-
-  Create continuous uniform distribution with over the interval (0, 100).
-
-    iex> exp = Dist.continuous_uniform(0, 100)
-  """
-  @spec continuous_uniform(number(), number()) :: struct()
-  def continuous_uniform(a, b) do
-    unless a < b do
-      raise ArgumentError,
-        message:
-          "minimum value #{inspect(a)} must be smaller than the maximum value: #{inspect(b)}"
-    end
-
-    %ContinuousUniform{a: a, b: b}
-  end
-
-  @doc """
   Probability density function. Let `X` be a random variable. `pdf(x)` is defined
   as `P(X=x)`.
 
@@ -101,10 +134,23 @@ defmodule Dist do
     iex> exp = Dist.exponential(4)
     iex> exp |> Dist.pdf(2)
     0.0013418505116100474
+
+    iex> exp = Dist.binomial(1000, 0.5)
+    iex> exp |> Dist.pdf(3.14159) # what's the probability of pi successes out of 1000?
+    0.0
+
   """
   @spec pdf(struct(), number()) :: number()
   def pdf(dist, x) do
     case dist do
+      # Binomial distribution is discrete, so P(X=x) when
+      # x is non-integer is zero.
+      %Binomial{n: n, p: p} ->
+        case trunc(x) == x do
+          true -> Binomial.pdf(n, p, x)
+          false -> 0.0
+        end
+
       %Exponential{lambda: lambda} ->
         Exponential.pdf(lambda, x)
 
@@ -119,9 +165,7 @@ defmodule Dist do
 
   `Sx` makes no distinction between continuous random variables and
   discrete random variables. Therefore, this function will work with
-  both continuous and discrete random variables. However, it is important
-  to note that if you pass in a non-integer value for a discrete random
-  variable, you will get a probability of zero.
+  both continuous and discrete random variables.
 
   ## Example
     iex> exp = Dist.exponential(4)
@@ -131,6 +175,9 @@ defmodule Dist do
   @spec cdf(struct(), number()) :: number()
   def cdf(dist, x) do
     case dist do
+      %Binomial{n: n, p: p} ->
+        Binomial.cdf(n, p, x)
+
       %Exponential{lambda: lambda} ->
         Exponential.cdf(lambda, x)
 
@@ -144,17 +191,29 @@ defmodule Dist do
   the percent point function, or the percentile function.
   """
   @spec icdf(struct(), number()) :: number()
-  def icdf(dist, p) do
-    unless 0 <= p and p <= 1 do
-      raise ArgumentError, message: "desired quantile must be between 0 and 1: #{inspect(p)}"
+  def icdf(dist, q) do
+    unless q > 0 and q < 1 do
+      raise ArgumentError, message: "desired quantile must be between 0 and 1: #{inspect(q)}"
     end
 
-    case dist do
-      %Exponential{lambda: lambda} ->
-        Exponential.icdf(lambda, p)
+    case {q <= 0, q >= 1} do
+      {true, _} ->
+        0.0
 
-      %ContinuousUniform{a: a, b: b} ->
-        ContinuousUniform.icdf(a, b, p)
+      {_, true} ->
+        1.0
+
+      {_, _} ->
+        case dist do
+          %Binomial{n: n, p: prob} ->
+            Binomial.icdf(n, prob, q)
+
+          %Exponential{lambda: lambda} ->
+            Exponential.icdf(lambda, q)
+
+          %ContinuousUniform{a: a, b: b} ->
+            ContinuousUniform.icdf(a, b, q)
+        end
     end
   end
 
@@ -165,6 +224,9 @@ defmodule Dist do
   @spec mean(struct()) :: number()
   def mean(dist) do
     case dist do
+      %Binomial{n: n, p: p} ->
+        Binomial.mean(n, p)
+
       %Exponential{lambda: lambda} ->
         Exponential.mean(lambda)
 
@@ -180,6 +242,9 @@ defmodule Dist do
   @spec variance(struct()) :: number()
   def variance(dist) do
     case dist do
+      %Binomial{n: n, p: p} ->
+        Binomial.variance(n, p)
+
       %Exponential{lambda: lambda} ->
         Exponential.variance(lambda)
 
@@ -204,6 +269,9 @@ defmodule Dist do
   """
   def rand_gen(dist, seed) do
     case dist do
+      %Binomial{n: n, p: p} ->
+        Binomial.rand_gen(n, p, seed)
+
       %Exponential{lambda: lambda} ->
         Exponential.rand_gen(lambda, seed)
 

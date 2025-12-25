@@ -2,13 +2,11 @@ defmodule Internal.Math.ContFrac do
   require Integer
   @moduledoc false
 
-  @doc """
-  If the absolute value is less than tinyfloat, clip to
-  tinyfloat. In this case it's so small whether it's positive
-  or negative doesn't matter. All we need is to avoid division by zero
-  error.
-  """
   defp clip(value) do
+    # If the absolute value is less than tinyfloat, clip to
+    # tinyfloat. In this case it's so small whether it's positive
+    # or negative doesn't matter. All we need is to avoid division by zero
+    # error.
     tinyfloat = 1.0e-30
 
     case abs(value) < tinyfloat do
@@ -17,11 +15,9 @@ defmodule Internal.Math.ContFrac do
     end
   end
 
-  @doc """
-  Incomplete beta can be expressed as a continued fraction.
-  d_n is typically used as the notation for the numerator.
-  """
   defp d_n(n, _, _, _) when n == 0 do
+    # Incomplete beta can be expressed as a continued fraction.
+    # d_n is typically used as the notation for the numerator.
     1
   end
 

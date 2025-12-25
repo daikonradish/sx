@@ -2,6 +2,7 @@ defmodule Math do
   require Integer
 
   alias Internal.Math.ContFrac
+  alias Internal.Math.Normal
 
   @spec sqrt(number) :: number()
   defdelegate sqrt(n), to: :math
@@ -58,6 +59,17 @@ defmodule Math do
     tmp + Math.log(2.5066282746310005 * err / xx)
   end
 
+  @doc """
+  Note: beta(a, b) = gamma(a) * gamma(b) / gamma(a + b)
+  """
+  def logbeta(a, b) do
+    loggamma(a) + loggamma(b) - loggamma(a + b)
+  end
+
+  @doc """
+  Manual computation of a ^ b, where a is any real number but b is integral value,
+  e.g. 0.4 ^ 29.
+  """
   @spec exponentiate_int(number(), non_neg_integer()) :: number()
   def exponentiate_int(x, n) do
     case n <= 0 do
@@ -66,6 +78,9 @@ defmodule Math do
     end
   end
 
+  @doc """
+  Computes the binomial coefficient, n choose k.
+  """
   @spec choose(non_neg_integer(), non_neg_integer()) :: non_neg_integer()
   def choose(n, k) do
     cond do
@@ -86,6 +101,26 @@ defmodule Math do
     case i > k do
       true -> acc
       false -> do_choose(div((n - i + 1) * acc, i), i + 1, n, k)
+    end
+  end
+
+  @doc """
+  Inverse of the normal cdf.
+
+  ## Examples
+    iex> Math.inv_cdf_standard_normal(0.95) # z-score for 10%
+    1.6448536269514715
+    iex> Math.inv_cdf_standard_normal(0.975) # z-score for 5%
+    1.9599639845400536
+  """
+  @spec inv_cdf_standard_normal(float()) :: float()
+  def inv_cdf_standard_normal(p) do
+    cond do
+      p <= 0 and p >= 1 ->
+        raise ArgumentError, message: "p must be between 0 and 1, you provided #{inspect(p)}"
+
+      true ->
+        Normal.ppnd16(p)
     end
   end
 
