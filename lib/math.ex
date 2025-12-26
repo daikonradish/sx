@@ -2,7 +2,8 @@ defmodule Math do
   require Integer
 
   alias Internal.Math.ContFrac
-  alias Internal.Math.Normal
+  alias Internal.Math.NormalPercentile
+  alias Internal.Math.NormalCumulative
 
   @spec sqrt(number) :: number()
   defdelegate sqrt(n), to: :math
@@ -19,6 +20,11 @@ defmodule Math do
   @spec factorial(integer()) :: integer()
   def factorial(n) do
     do_factorial(1, 1, n)
+  end
+
+  @spec expm1(number()) :: number()
+  def expm1(x) do
+    exp(x) - 1
   end
 
   defp do_factorial(acc, i, n) do
@@ -120,8 +126,12 @@ defmodule Math do
         raise ArgumentError, message: "p must be between 0 and 1, you provided #{inspect(p)}"
 
       true ->
-        Normal.ppnd16(p)
+        NormalPercentile.ppnd16(p)
     end
+  end
+
+  def cdf_standard_normal(x) do
+    NormalCumulative.pnorm(x)
   end
 
   def inc_beta(a, b, x) do

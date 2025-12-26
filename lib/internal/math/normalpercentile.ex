@@ -1,4 +1,4 @@
-defmodule Internal.Math.Normal do
+defmodule Internal.Math.NormalPercentile do
   @one 1.0e0
   @half 5.0e-1
   @split1 0.425e0
