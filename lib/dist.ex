@@ -209,6 +209,9 @@ defmodule Dist do
 
       %ContinuousUniform{a: a, b: b} ->
         ContinuousUniform.cdf(a, b, x)
+
+      %Normal{mu: mu, sigma: sigma} ->
+        Normal.cdf(mu, sigma, x)
     end
   end
 
