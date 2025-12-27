@@ -2,11 +2,18 @@ defmodule Internal.Math.IncompleteBeta do
   require Integer
   @moduledoc false
   def incomplete_beta(a, b, x) do
-    case x > (a + 1.0) / (a + b + 2.0) do
-      true ->
+    unless x >= 0 and x <= 1 do
+      raise ArgumentError, message: "x must be in the range of [0, 1], you gave #{inspect(x)}"
+    end
+
+    cond do
+      x == 0 or x == 1 ->
+        x
+
+      x > (a + 1.0) / (a + b + 2.0) ->
         1.0 - beta_continued_fraction_solver(b, a, 1.0 - x)
 
-      false ->
+      true ->
         beta_continued_fraction_solver(a, b, x)
     end
   end
@@ -71,4 +78,16 @@ defmodule Internal.Math.IncompleteBeta do
       false -> lentz_loop(cprime, dprime, fprime, n + 1, a, b, x)
     end
   end
+
+  # brcomp(a, b, x, y) do
+  #   case {x == 0.0, y == 0.0} do
+  #     {true, _} -> 0.0
+  #     {_, true} -> 0.0
+  #     {_, _} ->
+  #       a0 = min(a, b)
+  #       {lnx, lny} = cond do
+  #         x <= 0.375 -> {Math.log()}
+  #       end
+  #   end
+  # end
 end

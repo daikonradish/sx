@@ -41,7 +41,8 @@ defmodule Dist do
     Binomial,
     ContinuousUniform,
     Exponential,
-    Normal
+    Normal,
+    T
   }
 
   @doc """
@@ -147,6 +148,29 @@ defmodule Dist do
   end
 
   @doc """
+  Create a `struct` representing an t-distribution parametrized by df.
+
+  df must be a number greater than zero. In practice, df will always take on
+  integer values, although the distribution is also defined for any positive
+  real value of df.
+
+  ## Example
+
+  Create t distribution with 4 degrees of freedom.
+
+    iex> Dist.t(4)
+  """
+  @spec t(number()) :: struct()
+  def t(df) do
+    unless df > 0 do
+      raise ArgumentError,
+        message: "df must be positive, provided: #{inspect(df)}"
+    end
+
+    %T{df: df}
+  end
+
+  @doc """
   Probability density function. Let `X` be a random variable. `pdf(x)` is defined
   as `P(X=x)`.
 
@@ -215,6 +239,9 @@ defmodule Dist do
 
       %Normal{mu: mu, sigma: sigma} ->
         Normal.cdf(mu, sigma, x)
+
+      %T{df: df} ->
+        T.cdf(df, x)
     end
   end
 
