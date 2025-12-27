@@ -22,7 +22,7 @@ defmodule Internal.Dist.Normal do
             0.0
 
           true ->
-            x1 = trunc(x * @twopowsixteen) * @twopowminussixteen
+            x1 = trunc(xabs * @twopowsixteen) * @twopowminussixteen
             x2 = xabs - x1
 
             @oneoversqrttwopi / sigma *

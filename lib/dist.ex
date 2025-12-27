@@ -182,6 +182,9 @@ defmodule Dist do
 
       %ContinuousUniform{a: a, b: b} ->
         ContinuousUniform.pdf(a, b, x)
+
+      %Normal{mu: mu, sigma: sigma} ->
+        Normal.pdf(mu, sigma, x)
     end
   end
 
