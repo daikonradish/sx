@@ -28,23 +28,24 @@ defmodule MathTest do
   end
 
   test "incomplete beta" do
-    assert_in_delta(Math.inc_beta(10, 10, 0.1), 0.00000, 0.001)
-    assert_in_delta(Math.inc_beta(10, 10, 0.3), 0.03255, 0.001)
-    assert_in_delta(Math.inc_beta(10, 10, 0.5), 0.50000, 0.001)
-    assert_in_delta(Math.inc_beta(10, 10, 0.7), 0.96744, 0.001)
+    assert_in_delta(Math.incomplete_beta(10, 10, 0.1), 0.00000, 0.001)
+    assert_in_delta(Math.incomplete_beta(10, 10, 0.3), 0.03255, 0.001)
+    assert_in_delta(Math.incomplete_beta(10, 10, 0.5), 0.50000, 0.001)
+    assert_in_delta(Math.incomplete_beta(10, 10, 0.7), 0.96744, 0.001)
 
-    assert_in_delta(Math.inc_beta(15, 10, 0.5), 0.15373, 0.001)
-    assert_in_delta(Math.inc_beta(15, 10, 0.6), 0.48908, 0.001)
+    assert_in_delta(Math.incomplete_beta(15, 10, 0.5), 0.15373, 0.001)
+    assert_in_delta(Math.incomplete_beta(15, 10, 0.6), 0.48908, 0.001)
 
-    assert_in_delta(Math.inc_beta(10, 15, 0.5), 0.84627, 0.001)
-    assert_in_delta(Math.inc_beta(10, 15, 0.6), 0.97834, 0.001)
+    assert_in_delta(Math.incomplete_beta(10, 15, 0.5), 0.84627, 0.001)
+    assert_in_delta(Math.incomplete_beta(10, 15, 0.6), 0.97834, 0.001)
 
-    assert_in_delta(Math.inc_beta(20, 20, 0.4), 0.10206, 0.001)
-    assert_in_delta(Math.inc_beta(40, 40, 0.4), 0.03581, 0.001)
-    assert_in_delta(Math.inc_beta(40, 40, 0.7), 0.9999, 0.001)
+    assert_in_delta(Math.incomplete_beta(20, 20, 0.4), 0.10206, 0.001)
+    assert_in_delta(Math.incomplete_beta(40, 40, 0.4), 0.03581, 0.001)
+    assert_in_delta(Math.incomplete_beta(40, 40, 0.7), 0.9999, 0.001)
   end
 
   test "inverse incomplete beta" do
+    # implementation uses incomplete_Beta
     test_cases = [
       # Edge cases
       {1.0, 1.0, 0.0, 0.0, "Edge: p=0"},
@@ -126,7 +127,7 @@ defmodule MathTest do
     ]
 
     for {a, b, p, expected, _description} <- test_cases do
-      assert_in_delta(Math.inv_inc_beta(a, b, p), expected, 0.0001)
+      assert_in_delta(Math.inv_incomplete_beta(a, b, p), expected, 0.0001)
     end
   end
 

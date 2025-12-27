@@ -1,9 +1,10 @@
 defmodule Math do
   require Integer
 
-  alias Internal.Math.ContFrac
-  alias Internal.Math.NormalPercentile
+  alias Internal.Math.IncompleteBeta
+  alias Internal.Math.InvIncompleteBeta
   alias Internal.Math.NormalCumulative
+  alias Internal.Math.NormalPercentile
 
   @spec sqrt(number) :: number()
   defdelegate sqrt(n), to: :math
@@ -134,111 +135,11 @@ defmodule Math do
     NormalCumulative.pnorm(x)
   end
 
-  def inc_beta(a, b, x) do
-    case x > (a + 1.0) / (a + b + 2.0) do
-      true ->
-        1.0 - beta_continued_fraction_solver(b, a, 1.0 - x)
-
-      false ->
-        beta_continued_fraction_solver(a, b, x)
-    end
+  def incomplete_beta(a, b, x) do
+    IncompleteBeta.incomplete_beta(a, b, x)
   end
 
-  defp beta_continued_fraction_solver(a, b, x) do
-    lbeta_ab = loggamma(a) + loggamma(b) - loggamma(a + b)
-    mult = exp(log(x) * a + log(1.0 - x) * b - lbeta_ab) / a
-    contfrac = ContFrac.lentz_loop(1.0, 0.0, 1.0, 0, a, b, x)
-    mult * (contfrac - 1.0)
-  end
-
-  def inv_inc_beta(a, b, p) do
-    cond do
-      p <= 0.0 ->
-        0.0
-
-      p >= 1.0 ->
-        1.0
-
-      true ->
-        guess =
-          case a > 1.0 and b > 1.0 do
-            true ->
-              mu = a / (a + b)
-              sigma = sqrt(a * b / ((a + b) ** 2.0 * (a + b + 1.0)))
-              x = mu + sigma * (2.0 * p - 1.0)
-              # Clamp x to 0.01 and 0.99
-              max(0.01, min(0.99, x))
-
-            false ->
-              0.5
-          end
-
-        betaab = loggamma(a + b) - loggamma(a) - loggamma(b)
-
-        newton_halley_iterate(guess, 0.0, 1.0, 0, p, a, b, betaab)
-    end
-  end
-
-  def newton_halley_iterate(x, x_low, x_high, n, p, a, b, betaab) do
-    epsilon = 1.0e-8
-    riskofunderflow = 1.0e-20
-
-    unless n < 15 do
-      raise ArgumentError, message: "original guess was bad, more than 100 iteratiosn!"
-    end
-
-    fx = inc_beta(a, b, x) - p
-
-    {new_low, new_high} =
-      case fx < 0 do
-        true -> {max(0.0, x), min(x_high, 1.0)}
-        false -> {max(0.0, x_low), min(x, 1.0)}
-      end
-
-    x_bisected =
-      cond do
-        x < 0 -> x
-        x < 1 -> (new_low + new_high) / 2
-        true -> 1
-      end
-
-    logpdf = (a - 1.0) * log(x) + (b - 1.0) * log(1.0 - x) + betaab
-    fprimex = exp(logpdf)
-
-    fprimeprimex = fprimex * ((a - 1) / x - (b - 1) / (1 - x))
-    denominator = fprimex - 0.5 * fx * fprimeprimex / fprimex
-
-    x_halley =
-      case denominator < riskofunderflow do
-        ## Just fallback to newton,
-        true -> x - fx / fprimex
-        ## Otherwise use Halley, up to third derivative.
-        false -> x - fx / denominator
-      end
-
-    cond do
-      # the pdf is the derivative of the CDF. if the pdf is close to zero
-      # then indeed we have achieved convergence according to Newton-Raphson
-      # or Halley, or any of the iterative methods which use the first derivative.
-      abs(fx) < epsilon ->
-        x
-
-      abs(x_halley - x) < epsilon ->
-        x_halley
-
-      # bisect the search space if we're too far away. This is not
-      # Newton-Raphson or Halley, it's just a shortcut.
-      x <= 0 or x >= 1 ->
-        newton_halley_iterate(x_bisected, new_low, new_high, n + 1, p, a, b, betaab)
-
-      fprimex < riskofunderflow ->
-        newton_halley_iterate(x_bisected, new_low, new_high, n + 1, p, a, b, betaab)
-
-      x_halley < new_low or x_halley > new_high ->
-        newton_halley_iterate(x_bisected, new_low, new_high, n + 1, p, a, b, betaab)
-
-      true ->
-        newton_halley_iterate(x_halley, new_low, new_high, n + 1, p, a, b, betaab)
-    end
+  def inv_incomplete_beta(a, b, p) do
+    InvIncompleteBeta.inv_incomplete_beta(a, b, p)
   end
 end

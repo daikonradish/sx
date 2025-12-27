@@ -1,6 +1,22 @@
-defmodule Internal.Math.ContFrac do
+defmodule Internal.Math.IncompleteBeta do
   require Integer
   @moduledoc false
+  def incomplete_beta(a, b, x) do
+    case x > (a + 1.0) / (a + b + 2.0) do
+      true ->
+        1.0 - beta_continued_fraction_solver(b, a, 1.0 - x)
+
+      false ->
+        beta_continued_fraction_solver(a, b, x)
+    end
+  end
+
+  defp beta_continued_fraction_solver(a, b, x) do
+    lbeta_ab = Math.loggamma(a) + Math.loggamma(b) - Math.loggamma(a + b)
+    mult = Math.exp(Math.log(x) * a + Math.log(1.0 - x) * b - lbeta_ab) / a
+    contfrac = lentz_loop(1.0, 0.0, 1.0, 0, a, b, x)
+    mult * (contfrac - 1.0)
+  end
 
   defp clip(value) do
     # If the absolute value is less than tinyfloat, clip to

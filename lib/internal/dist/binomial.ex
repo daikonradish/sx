@@ -41,7 +41,7 @@ defmodule Internal.Dist.Binomial do
       x <= 0 -> 0.0
       x >= n -> 1.0
       n <= @smallenough -> brute_force_search_cdf(n, p, x, 0, 0.0)
-      true -> Math.inc_beta(n - x, x + 1, 1 - p)
+      true -> Math.incomplete_beta(n - x, x + 1, 1 - p)
     end
   end
 
