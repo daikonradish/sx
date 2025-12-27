@@ -294,6 +294,9 @@ defmodule Dist do
 
       %ContinuousUniform{a: a, b: b} ->
         ContinuousUniform.mean(a, b)
+
+      %Normal{mu: mu, sigma: sigma} ->
+        Normal.mean(mu, sigma)
     end
   end
 
@@ -312,6 +315,9 @@ defmodule Dist do
 
       %ContinuousUniform{a: a, b: b} ->
         ContinuousUniform.variance(a, b)
+
+      %Normal{mu: mu, sigma: sigma} ->
+        Normal.variance(mu, sigma)
     end
   end
 
