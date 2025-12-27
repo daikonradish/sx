@@ -40,7 +40,8 @@ defmodule Dist do
   alias Internal.Dist.{
     Binomial,
     ContinuousUniform,
-    Exponential
+    Exponential,
+    Normal
   }
 
   @doc """
@@ -54,7 +55,7 @@ defmodule Dist do
   `n` must be an nonnegative integer value.
 
   ## Example
-    iex> exp = Dist.binomial(150, 0.5) # 150 fair coin flips, for example.
+    iex> Dist.binomial(150, 0.5) # 150 fair coin flips, for example.
   """
   @spec binomial(non_neg_integer(), number()) :: struct()
   def binomial(n, p) do
@@ -83,7 +84,7 @@ defmodule Dist do
 
   Create continuous uniform distribution with over the interval (0, 100).
 
-    iex> exp = Dist.continuous_uniform(0, 100)
+    iex> Dist.continuous_uniform(0, 100)
   """
   @spec continuous_uniform(number(), number()) :: struct()
   def continuous_uniform(a, b) do
@@ -109,7 +110,7 @@ defmodule Dist do
 
   Create exponential distribution with rate parameter = 4.
 
-    iex> exp = Dist.exponential(4)
+    iex> Dist.exponential(4)
   """
   @spec exponential(number()) :: struct()
   def exponential(lambda) do
@@ -118,6 +119,31 @@ defmodule Dist do
     end
 
     %Exponential{lambda: lambda}
+  end
+
+  @doc """
+  Create a `struct` representing an normal variable parametrized by mu, sigma.
+
+  Mu is the mean, while sigma is the standard deviation, that is, the square root of the variance.
+  For this reason, sigma must be nonnegative.
+
+  Note that the `pdf` for a normal distribution with `sigma = 0` is undefined, as that represents
+  a probability distribution with infinite density at `x = mu`, 0 elsewhere.
+
+  ## Example
+
+  Create Normal distribution with average height, standard deviation in the population (in cm).
+
+    iex> Dist.normal(171, 5.23)
+  """
+  @spec normal(number(), number()) :: struct()
+  def normal(mu, sigma) do
+    unless sigma >= 0 do
+      raise ArgumentError,
+        message: "standard dev must be nonnegative, provided: #{inspect(sigma)}"
+    end
+
+    %Normal{mu: mu, sigma: sigma}
   end
 
   @doc """
@@ -213,6 +239,9 @@ defmodule Dist do
 
           %ContinuousUniform{a: a, b: b} ->
             ContinuousUniform.icdf(a, b, q)
+
+          %Normal{mu: mu, sigma: sigma} ->
+            Normal.icdf(mu, sigma, q)
         end
     end
   end
