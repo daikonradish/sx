@@ -629,6 +629,8 @@ defmodule DistTest do
     for {mu, sigma} <- msss do
       d = Dist.normal(mu, sigma)
       d |> DistHelper.has_correct_inverse_at_median()
+      d |> DistHelper.mean_of_random_samples(50000)
+      d |> DistHelper.variance_of_random_samples(50000)
     end
   end
 

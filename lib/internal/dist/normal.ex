@@ -51,8 +51,8 @@ defmodule Internal.Dist.Normal do
     end
   end
 
-  def rand_gen(mu, sigma, seed) do
-    nil
+  def rand_gen(mu, sigma, initial_state) do
+    Rand.unit_gen_map(initial_state, fn x -> icdf(mu, sigma, x) end)
   end
 
   def mean(mu, _) do

@@ -312,6 +312,9 @@ defmodule Dist do
 
       %ContinuousUniform{a: a, b: b} ->
         ContinuousUniform.rand_gen(a, b, seed)
+
+      %Normal{mu: mu, sigma: sigma} ->
+        Normal.rand_gen(mu, sigma, seed)
     end
   end
 end
