@@ -5,6 +5,7 @@ defmodule Math do
   alias Internal.Math.InvIncompleteBeta
   alias Internal.Math.NormalCumulative
   alias Internal.Math.NormalPercentile
+  alias Internal.Math.Log1p
 
   @spec sqrt(number) :: number()
   defdelegate sqrt(n), to: :math
@@ -26,6 +27,11 @@ defmodule Math do
   @spec expm1(number()) :: number()
   def expm1(x) do
     exp(x) - 1
+  end
+
+  @spec log1p(number()) :: number()
+  def log1p(x) do
+    Log1p.log1p(x)
   end
 
   defp do_factorial(acc, i, n) do
