@@ -30,6 +30,9 @@ defmodule Internal.Math.Constants do
       # 1 / sqrt(2)
       @m_1_sqrt_2 0.7071067811865475244008443621048490392848359376884740365883
 
+      # 1 / sqrt(2 * pi)
+      @m_1_sqrt_2_pi 0.39894228040143267793994644226162355531505365514682
+
       # Smallest value of x such that 1 + x is not equal to 1.
       # Anything smaller than this will result in 1 + x rounded off to 1.
       @m_epsilon 2.220446049250313e-16
